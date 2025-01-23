@@ -74,3 +74,30 @@ def count_lessons(message):
     del downloaded_file
     del df
 
+def find_students_with_low_scores(message):
+    # Скачиваем файл
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    df = pd.read_excel(BytesIO(downloaded_file))
+
+    if 'Homework' in df.columns and 'Classroom' in df.columns and 'FIO' in df.columns:
+
+        df['Average'] = (df['Homework'] + df['Classroom']) / 2
+        low_scores = df[df['Average'] < 3]
+
+        if not low_scores.empty:
+            result_message = "Студенты с низкими средними оценками:\n"
+            for index, row in low_scores.iterrows():
+                result_message += f"{row['FIO']} (Средняя: {row['Average']:.2f}, Домашнее: {row['Homework']}, Аудиторное: {row['Classroom']})\n"
+        else:
+            result_message = "Нет студентов с средними оценками ниже 3."
+
+        bot.send_message(message.chat.id, result_message)
+    else:
+        bot.send_message(message.chat.id, "Одна или несколько необходимых колонок отсутствуют в файле.")
+    del downloaded_file
+    del df
+
+
+bot.polling(none_stop=True)
