@@ -33,13 +33,44 @@ def click_button(message): # - обработка клавиатурных кн�
     if message.text == 'Подсчёт кол-ва проведенных пар для групп':
         bot.send_message(message.chat.id, 'Отправьте xlsx файл(файл Excel):')
 
-        bot.register_next_step_handler(message)
+        bot.register_next_step_handler(message, count_lessons)
     if message.text == 'Ученики с низкими оценками':
         bot.send_message(message.chat.id, 'Отправьте xlsx файл(файл Excel):')
 
-        bot.register_next_step_handler(message)
+        bot.register_next_step_handler(message, find_students_with_low_scores)
 
     bot.register_next_step_handler(message, click_button)
 
+def count_lessons(message):
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
 
+    df = pd.read_excel(BytesIO(downloaded_file))
+
+    first_column_value = df.iloc[1, 0]
+
+    subject_count = {}
+
+    for column in df.columns[1:]:
+        for value in df[column]:
+            if isinstance(value, str):
+                if "предмет:" in value.lower():
+
+                    subject = value.lower().split("предмет:")[1].split("\n")[
+                        0].strip()
+                    if subject in subject_count:
+                        subject_count[subject] += 1
+                    else:
+                        subject_count[subject] = 1
+
+    result_message = "Количество предметов:\n"
+    for subject, count in subject_count.items():
+        result_message += f'Предмет: {subject}, Количество: {count}\n'
+
+    bot.send_message(message.chat.id, f'Количество пар для группы {first_column_value}: \n{result_message}')
+
+
+    #bot.register_next_step_handler(message, lambda m: count_lessons(m, df))
+    del downloaded_file
+    del df
 
